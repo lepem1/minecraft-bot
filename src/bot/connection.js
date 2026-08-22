@@ -7,6 +7,7 @@ const ChatController = require('./chat');
 const InventoryController = require('./inventory');
 const PvpController = require('./pvp');
 const { buildStatus } = require('./status');
+const ForgeClientManager = require('./ForgeClientManager');
 
 class BotManager extends EventEmitter {
   constructor(config, viewer) {
@@ -19,6 +20,13 @@ class BotManager extends EventEmitter {
     this.reconnectTimer = null;
     this.lastConnectOptions = { ...config.minecraft };
     this.statusTimer = null;
+    this.reconnectAttempts = 0;
+    this.forge = new ForgeClientManager(config.forge);
+    this.forge.on('status', (status) => {
+      this.emit('forge_status', status);
+      this.setState(status.state.toLowerCase(), status.message || status.diagnostic);
+    });
+    this.forge.on('log', (message) => message && this.emit('bot_chat', { kind: 'system', message: `[Forge] ${message}`, at: Date.now() }));
 
     this.movement = new MovementController(() => this.bot);
     this.camera = new CameraController(() => this.bot);
@@ -39,12 +47,12 @@ class BotManager extends EventEmitter {
   }
 
   safeConnectOptions() {
-    const { host, port, version, username, auth } = this.lastConnectOptions;
-    return { host, port, version, username, auth };
+    const { host, port, version, username, auth, loader, forgeVersion, modDirectory } = this.lastConnectOptions;
+    return { host, port, version, username, auth, loader, forgeVersion, modDirectory };
   }
 
   emitStatus() {
-    this.emit('bot_status', buildStatus(this.state, this.bot, this.safeConnectOptions()));
+    this.emit('bot_status', buildStatus(this.state, this.bot, this.safeConnectOptions(), this.forge.status));
     this.emit('pvp_status', this.pvp.status());
   }
 
@@ -53,7 +61,7 @@ class BotManager extends EventEmitter {
   }
 
   connect(overrides = {}) {
-    if (this.bot || ['connecting', 'online', 'reconnecting'].includes(this.state)) {
+    if (this.bot || ['connecting', 'online', 'reconnecting', 'starting_forge', 'loading_mods', 'forge_handshake', 'spawning', 'connected'].includes(this.state)) {
       this.emitStatus();
       return this.safeConnectOptions();
     }
@@ -61,7 +69,12 @@ class BotManager extends EventEmitter {
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.manualDisconnect = false;
+    this.reconnectAttempts = 0;
     this.lastConnectOptions = { ...this.lastConnectOptions, ...overrides };
+    if (this.lastConnectOptions.loader === 'forge') {
+      this.forge.start({ ...this.lastConnectOptions, botUsername: this.lastConnectOptions.username });
+      return this.safeConnectOptions();
+    }
     this.setState(this.state === 'reconnecting' ? 'reconnecting' : 'connecting');
 
     const options = {
@@ -138,6 +151,11 @@ class BotManager extends EventEmitter {
 
   scheduleReconnect(message) {
     if (this.reconnectTimer) return;
+    this.reconnectAttempts += 1;
+    if (this.reconnectAttempts > this.config.minecraft.maxReconnectAttempts) {
+      this.setState('error', 'Connection failed repeatedly. Check server version and configuration.');
+      return;
+    }
     this.setState('reconnecting', message);
     logger.info('Scheduling reconnect.', { delay: this.config.minecraft.reconnectDelay });
     this.reconnectTimer = setTimeout(() => {
@@ -153,7 +171,8 @@ class BotManager extends EventEmitter {
     this.movement.stopAllControls();
     this.pvp.stop();
 
-    if (this.bot) this.bot.quit('Dashboard disconnect');
+    if (this.lastConnectOptions.loader === 'forge') this.forge.stop(this.lastConnectOptions);
+    else if (this.bot) this.bot.quit('Dashboard disconnect');
     else this.setState('offline');
   }
 
