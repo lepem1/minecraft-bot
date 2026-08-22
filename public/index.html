@@ -17,6 +17,7 @@
         <input id="password" type="password" placeholder="Dashboard password" value="12345" autocomplete="current-password">
         <button id="connectBtn">Connect</button>
         <button id="disconnectBtn">Disconnect</button>
+        <button id="fullscreenPovBtn" type="button">Open Fullscreen POV</button>
       </div>
     </header>
 
@@ -29,6 +30,9 @@
           <label>Bot name<input id="botUsernameInput" name="username" required maxlength="16" placeholder="MyBot"></label>
           <label>Version<input id="mcVersion" name="version" required placeholder="1.20.4"></label>
           <label>Auth<select id="authMode" name="auth"><option value="offline">offline</option><option value="microsoft">microsoft</option><option value="mojang">mojang</option></select></label>
+          <label>Loader<select id="loader" name="loader"><option value="vanilla">vanilla</option><option value="forge">forge</option></select></label>
+          <label>Forge version<input id="forgeVersion" name="forgeVersion" placeholder="47.3.0"></label>
+          <label>Mod directory<input id="modDirectory" name="modDirectory" placeholder="minecraft/mods"></label>
           <p id="deployNotice" class="notice"></p>
         </form>
       </section>
