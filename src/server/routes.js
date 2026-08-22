@@ -30,7 +30,7 @@ function createRoutes(config, botManager) {
     authRequired: Boolean(config.web.password)
   }));
 
-  router.get('/api/forge/status', requireAuth, (req, res) => res.json(botManager.forge.status));
+  router.get('/api/forge/status', requireAuth, (req, res) => res.json(botManager.forge.getStatus()));
 
   router.post('/api/bot/connect', requireAuth, (req, res) => {
     const validated = validateConnectOptions(req.body || {});

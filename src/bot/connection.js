@@ -7,7 +7,7 @@ const ChatController = require('./chat');
 const InventoryController = require('./inventory');
 const PvpController = require('./pvp');
 const { buildStatus } = require('./status');
-const ForgeClientManager = require('./forge-client');
+const ForgeClientManager = require('./ForgeClientManager');
 
 class BotManager extends EventEmitter {
   constructor(config, viewer) {
@@ -72,7 +72,7 @@ class BotManager extends EventEmitter {
     this.reconnectAttempts = 0;
     this.lastConnectOptions = { ...this.lastConnectOptions, ...overrides };
     if (this.lastConnectOptions.loader === 'forge') {
-      this.forge.start(this.lastConnectOptions);
+      this.forge.start({ ...this.lastConnectOptions, botUsername: this.lastConnectOptions.username });
       return this.safeConnectOptions();
     }
     this.setState(this.state === 'reconnecting' ? 'reconnecting' : 'connecting');
@@ -171,7 +171,7 @@ class BotManager extends EventEmitter {
     this.movement.stopAllControls();
     this.pvp.stop();
 
-    if (this.lastConnectOptions.loader === 'forge') this.forge.stop();
+    if (this.lastConnectOptions.loader === 'forge') this.forge.stop(this.lastConnectOptions);
     else if (this.bot) this.bot.quit('Dashboard disconnect');
     else this.setState('offline');
   }

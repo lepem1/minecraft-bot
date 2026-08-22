@@ -9,7 +9,8 @@ function diagnose(text) {
   const message = String(text || '');
   const value = message.toLowerCase();
   if (message.includes(FORGE_REQUIRED)) return 'FORGE_CLIENT_REQUIRED';
-  if (/missing mods?|mod mismatch|incompatible mod/.test(value)) return 'FORGE_MOD_MISMATCH';
+  if (/missing required mod|missing mods?/.test(value)) return 'FORGE_MOD_MISSING';
+  if (/mod mismatch|incompatible mod/.test(value)) return 'FORGE_MOD_MISMATCH';
   if (/forge.+version|version.+forge/.test(value)) return 'FORGE_VERSION_MISMATCH';
   if (/minecraft.+version|unsupported client/.test(value)) return 'MINECRAFT_VERSION_MISMATCH';
   if (/auth|access token|invalid session|not authenticated/.test(value)) return 'AUTHENTICATION_FAILED';
@@ -21,7 +22,7 @@ class ForgeClientManager extends EventEmitter {
     super();
     this.config = config;
     this.process = null;
-    this.status = { state: 'DISCONNECTED', java: null, clientMods: 0, missingRequiredMods: [], pov: 'FORGE_POV_UNAVAILABLE' };
+    this.status = { state: 'OFFLINE', java: null, clientMods: 0, modFiles: [], missingRequiredMods: [], pov: 'FORGE_POV_UNAVAILABLE' };
   }
 
   emitStatus(state, extra = {}) {
@@ -39,8 +40,8 @@ class ForgeClientManager extends EventEmitter {
     });
   }
 
-  getModCount(modDirectory) {
-    try { return fs.readdirSync(modDirectory).filter((file) => file.toLowerCase().endsWith('.jar')).length; } catch { return 0; }
+  getModFiles(modDirectory) {
+    try { return fs.readdirSync(modDirectory).filter((file) => file.toLowerCase().endsWith('.jar')).sort(); } catch { return []; }
   }
 
   async start(profile) {
@@ -54,20 +55,25 @@ class ForgeClientManager extends EventEmitter {
       this.emitStatus('ERROR', { diagnostic: 'FORGE_VERSION_MISMATCH', message: 'Forge 47.x version is required.' });
       return this.status;
     }
-    this.emitStatus('STARTING_FORGE', { diagnostic: null, minecraftVersion: profile.version, forgeVersion: forge.forgeVersion });
+    if ((profile.auth || 'offline') !== 'offline') {
+      this.emitStatus('ERROR', { diagnostic: 'AUTHENTICATION_FAILED', message: 'Forge profiles in this deployment are restricted to offline-mode authentication.' });
+      return this.status;
+    }
+    this.emitStatus('STARTING', { diagnostic: null, minecraftVersion: profile.version, forgeVersion: forge.forgeVersion });
     const java = await this.verifyJava();
     if (!java.ok) {
       this.emitStatus('ERROR', { diagnostic: 'JAVA_NOT_FOUND', message: 'Java 17 is required for Forge 1.20.1.' });
       return this.status;
     }
-    this.emitStatus('LOADING_MODS', { java: java.output, clientMods: this.getModCount(forge.modDirectory), modDirectory: forge.modDirectory });
-    if (!this.config.clientCommand) {
-      this.emitStatus('ERROR', { diagnostic: 'FORGE_HEADLESS_CLIENT_UNAVAILABLE', message: 'Set FORGE_CLIENT_COMMAND to a genuine, Microsoft-authenticated headless Forge 1.20.1 client runner. Forge itself does not provide a generic headless game client.' });
+    const modFiles = this.getModFiles(forge.modDirectory);
+    this.emitStatus('LOADING', { java: java.output, clientMods: modFiles.length, modFiles, modDirectory: forge.modDirectory });
+    if (!fs.existsSync(this.config.clientCommand)) {
+      this.emitStatus('ERROR', { diagnostic: 'FORGE_CLIENT_RUNTIME_MISSING', message: `Forge launcher script not found: ${this.config.clientCommand}` });
       return this.status;
     }
-    const environment = { ...process.env, MINECRAFT_HOST: profile.host, MINECRAFT_PORT: String(profile.port), MINECRAFT_VERSION: profile.version, FORGE_VERSION: forge.forgeVersion, MOD_DIRECTORY: path.resolve(forge.modDirectory) };
+    const environment = { ...process.env, MINECRAFT_HOST: profile.host, MINECRAFT_PORT: String(profile.port), MINECRAFT_VERSION: profile.version, FORGE_VERSION: forge.forgeVersion, MOD_DIRECTORY: path.resolve(forge.modDirectory), BOT_USERNAME: profile.botUsername || profile.username, MINECRAFT_AUTH: profile.auth || 'offline' };
     this.emitStatus('CONNECTING');
-    this.process = spawn(this.config.clientCommand, { shell: true, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
+    this.process = spawn(this.config.clientCommand, [], { env: environment, stdio: ['pipe', 'pipe', 'pipe'] });
     const consume = (chunk) => this.consumeOutput(chunk.toString());
     this.process.stdout.on('data', consume);
     this.process.stderr.on('data', consume);
@@ -75,7 +81,7 @@ class ForgeClientManager extends EventEmitter {
     this.process.on('exit', (code) => {
       this.process = null;
       if (!['STOPPING', 'KICKED'].includes(this.status.state)) this.emitStatus('ERROR', { message: `Forge client exited with code ${code}.` });
-      else this.emitStatus('DISCONNECTED');
+      else this.emitStatus('OFFLINE');
     });
     return this.status;
   }
@@ -83,13 +89,29 @@ class ForgeClientManager extends EventEmitter {
   consumeOutput(text) {
     const diagnostic = diagnose(text);
     if (diagnostic) this.emitStatus('KICKED', { diagnostic, kickMessage: text.trim() });
-    else if (/forge.*handshake|handshake.*forge/i.test(text)) this.emitStatus('FORGE_HANDSHAKE');
-    else if (/joining world|loading terrain/i.test(text)) this.emitStatus('SPAWNING');
+    else if (/forge.*handshake|handshake.*forge/i.test(text)) this.emitStatus('CONNECTING');
+    else if (/joining world|loading terrain/i.test(text)) this.emitStatus('SPAWNED');
     else if (/joined the game|connection established|forge_client_connected/i.test(text)) this.emitStatus('CONNECTED');
     this.emit('log', text.trim());
   }
 
-  stop() { if (!this.process) return this.emitStatus('DISCONNECTED'); this.emitStatus('STOPPING'); this.process.kill('SIGTERM'); }
+  stop() { if (!this.process) return this.emitStatus('OFFLINE'); this.emitStatus('STOPPING'); this.process.kill('SIGTERM'); }
+  restart(profile) { this.stop(profile); return this.start(profile); }
+  getStatus() { return { ...this.status }; }
+  getProcess() { return this.process; }
+
+  sendCommand(command) {
+    if (!this.process?.stdin?.writable) throw new Error('Forge control bridge is not available.');
+    const allowed = new Set(['chat', 'move', 'look', 'jump', 'attack', 'useItem']);
+    if (!command || !allowed.has(command.type)) throw new Error('Unsupported Forge bridge command.');
+    this.process.stdin.write(`${JSON.stringify(command)}\n`);
+  }
+  sendChat(message) { return this.sendCommand({ type: 'chat', message }); }
+  move(action, pressed) { return this.sendCommand({ type: 'move', action, pressed: Boolean(pressed) }); }
+  look(yaw, pitch) { return this.sendCommand({ type: 'look', yaw, pitch }); }
+  jump(pressed) { return this.sendCommand({ type: 'jump', pressed: Boolean(pressed) }); }
+  attack() { return this.sendCommand({ type: 'attack' }); }
+  useItem() { return this.sendCommand({ type: 'useItem' }); }
 }
 
 module.exports = ForgeClientManager;

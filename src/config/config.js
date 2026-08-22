@@ -22,12 +22,11 @@ const config = {
   forge: {
     javaPath: process.env.JAVA_PATH || 'java',
     minecraftHome: process.env.MINECRAFT_HOME || 'minecraft',
+    clientHome: process.env.MINECRAFT_CLIENT_HOME || 'minecraft/client',
     forgeHome: process.env.FORGE_HOME || 'minecraft/forge',
     forgeVersion: process.env.FORGE_VERSION || '',
     modDirectory: process.env.MOD_DIRECTORY || 'minecraft/mods',
-    // This is deliberately not supplied by the application. It must be a real,
-    // account-authenticated Forge client runner supplied by the deployment.
-    clientCommand: process.env.FORGE_CLIENT_COMMAND || ''
+    clientCommand: process.env.FORGE_CLIENT_COMMAND || 'scripts/start-forge-client.sh'
   },
   web: {
     host: process.env.WEB_HOST || '0.0.0.0',
