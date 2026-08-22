@@ -61,6 +61,24 @@ function validateConnectOptions(input = {}) {
     else options.auth = auth;
   }
 
+  if (input.loader !== undefined) {
+    const loader = String(input.loader).trim().toLowerCase();
+    if (!['vanilla', 'forge'].includes(loader)) errors.push('Loader must be vanilla or forge.');
+    else options.loader = loader;
+  }
+
+  if (input.forgeVersion !== undefined) {
+    const forgeVersion = String(input.forgeVersion).trim();
+    if (forgeVersion && !/^47\.\d+\.\d+$/.test(forgeVersion)) errors.push('Forge version must be a 1.20.1 Forge 47.x.x build.');
+    else options.forgeVersion = forgeVersion;
+  }
+
+  if (input.modDirectory !== undefined) {
+    const modDirectory = String(input.modDirectory).trim();
+    if (modDirectory && (modDirectory.includes('\0') || require('path').isAbsolute(modDirectory))) errors.push('Mod directory must be a relative path.');
+    else options.modDirectory = modDirectory;
+  }
+
   return errors.length ? { ok: false, error: errors.join(' ') } : { ok: true, options };
 }
 

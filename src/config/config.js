@@ -13,7 +13,21 @@ const config = {
     version: process.env.MINECRAFT_VERSION || '1.20.4',
     username: process.env.BOT_USERNAME || 'MyBot',
     auth: process.env.MINECRAFT_AUTH || 'offline',
-    reconnectDelay: int('BOT_RECONNECT_DELAY', 5000)
+    reconnectDelay: int('BOT_RECONNECT_DELAY', 5000),
+    maxReconnectAttempts: int('MAX_RECONNECT_ATTEMPTS', 5),
+    loader: (process.env.MINECRAFT_LOADER || 'vanilla').toLowerCase(),
+    forgeVersion: process.env.FORGE_VERSION || '',
+    modDirectory: process.env.MOD_DIRECTORY || ''
+  },
+  forge: {
+    javaPath: process.env.JAVA_PATH || 'java',
+    minecraftHome: process.env.MINECRAFT_HOME || 'minecraft',
+    forgeHome: process.env.FORGE_HOME || 'minecraft/forge',
+    forgeVersion: process.env.FORGE_VERSION || '',
+    modDirectory: process.env.MOD_DIRECTORY || 'minecraft/mods',
+    // This is deliberately not supplied by the application. It must be a real,
+    // account-authenticated Forge client runner supplied by the deployment.
+    clientCommand: process.env.FORGE_CLIENT_COMMAND || ''
   },
   web: {
     host: process.env.WEB_HOST || '0.0.0.0',

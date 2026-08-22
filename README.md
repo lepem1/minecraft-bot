@@ -10,6 +10,13 @@ This project is intended for servers you own or are explicitly allowed to use. I
 - npm
 - A Minecraft Java Edition server you own or are authorized to use
 - A server version supported by Mineflayer and Prismarine packages
+- Java 17 when using a Forge 1.20.1 profile
+
+## Forge 1.20.1 compatibility
+
+Mineflayer is a protocol bot, not a Java Forge client, and cannot complete Forge mod-loader negotiation. Forge profiles (`loader: "forge"`) use a separate Forge process adapter. It does not fake packets, mod lists, Forge identity, or authentication. Set `FORGE_CLIENT_COMMAND` only to a genuine Microsoft-authenticated headless Forge-compatible client runner for the selected modpack. The runner receives the dashboard-selected host, port, Minecraft version, Forge version, and mod directory in environment variables, and must emit its normal Forge logs to stdout/stderr.
+
+Official Forge provides a graphical client profile; it does **not** provide a generic headless gameplay client. This repository therefore reports `FORGE_HEADLESS_CLIENT_UNAVAILABLE` instead of pretending the installer is a headless Forge client. The installer below creates the official client profile and mod directories. A deployment-provided, legitimate runner is required to genuinely connect. Mineflayer controls and Prismarine POV remain available for Mineflayer sessions; Forge profiles report `FORGE_POV_UNAVAILABLE` unless a real runner adds a control/telemetry/stream bridge.
 
 ## Installation
 
@@ -38,6 +45,15 @@ VIEWER_PORT=3007
 BOT_RECONNECT_DELAY=5000
 DASHBOARD_PASSWORD=12345
 LOG_LEVEL=info
+MINECRAFT_LOADER=vanilla
+FORGE_VERSION=47.3.0
+MINECRAFT_HOME=minecraft
+FORGE_HOME=minecraft/forge
+MOD_DIRECTORY=minecraft/mods
+JAVA_PATH=java
+MAX_RECONNECT_ATTEMPTS=5
+# Set only to an approved real Forge client runner; never store account tokens here.
+# FORGE_CLIENT_COMMAND=/app/bin/forge-headless-runner
 ```
 
 `DASHBOARD_PASSWORD` defaults to `12345` in this project. Change it before exposing the dashboard beyond your own trusted network.
@@ -54,7 +70,9 @@ Open `http://localhost:3000`, enter the dashboard password, type the Minecraft s
 
 ## Railway deployment
 
-Deploy this repository as a long-running Node service on Railway with the start command `npm start`. The app uses Railway’s injected `PORT` automatically; set `WEB_PORT` only when you need to override it. Keep `VIEWER_PORT` internal; the dashboard forwards the POV and its WebSocket traffic through the web service port.
+Deploy using the included Dockerfile and Railway's start command `npm start`. The image contains Node 20, Java 17, and Canvas build/runtime libraries. The app uses Railway’s injected `PORT` automatically; set `WEB_PORT` only when you need to override it. Keep `VIEWER_PORT` internal; the dashboard forwards the POV and its WebSocket traffic through the web service port.
+
+For a Forge profile, deploy the compatible client mod JARs (do not download unknown mods) to `minecraft/mods`, set `FORGE_VERSION` to the server-compatible 47.x build, and run `npm run install:forge` during your image/deployment preparation. Then configure the genuine headless runner in `FORGE_CLIENT_COMMAND`. The dashboard never returns authentication credentials or runner environment variables.
 
 ## Dashboard features
 
