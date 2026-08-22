@@ -54,9 +54,9 @@ Open `http://localhost:3000`, enter the dashboard password, type the Minecraft s
 
 ## Vercel / serverless deployment note
 
-The repository includes `vercel.json` and `api/vercel-health.js` so the static dashboard and a serverless health endpoint can be deployed to Vercel. However, live Minecraft bot control is **not serverless-compatible** because Mineflayer, WebSockets, TCP Minecraft connections, reconnection timers, and `prismarine-viewer` need a long-running Node.js process.
+The repository includes a minimal `vercel.json` that leaves Vercel's filesystem routing in place for `api/*.js` serverless functions and rewrites non-API page requests to the static dashboard. This avoids routing `/api/config` to an HTML page, which is what causes browser errors such as `Unexpected token 'T' ... is not valid JSON`. However, live Minecraft bot control is **not serverless-compatible** because Mineflayer, long-running TCP Minecraft connections, reconnection timers, and `prismarine-viewer` need a persistent Node.js process.
 
-For an online deployment that can actually join Minecraft servers, run this app on a persistent Node host such as a VPS, home server, Docker host, Railway/Fly/Render-style long-running service, or another platform that supports long-lived TCP and WebSocket processes. Vercel can still be used as a static frontend in front of that persistent backend if you add a backend URL configuration later.
+For an online deployment that can actually join Minecraft servers, run this app on a persistent Node host such as a VPS, home server, Docker host, Railway/Fly/Render-style long-running service, or another platform that supports long-lived TCP processes. Vercel can still host the static frontend and lightweight JSON API shims, or it can sit in front of a persistent backend if you add a backend URL configuration later.
 
 ## Dashboard features
 

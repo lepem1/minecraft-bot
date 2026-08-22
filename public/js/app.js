@@ -14,6 +14,22 @@ const state = {
   config: {}
 };
 
+async function readJson(response) {
+  const contentType = response.headers.get('content-type') || '';
+  const body = await response.text();
+
+  if (!contentType.includes('application/json')) {
+    const preview = body.trim().slice(0, 120) || response.statusText;
+    throw new Error(`Expected JSON from ${response.url}, got ${contentType || 'unknown content type'}: ${preview}`);
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    throw new Error(`Invalid JSON from ${response.url}: ${error.message}`);
+  }
+}
+
 const socket = new DashboardSocket(state, (message) => {
   if (message.type === 'bot_status' || message.type === 'bot_position') {
     state.status = message.data;
@@ -53,7 +69,7 @@ setupCollapsibles();
 
 async function loadConfig() {
   const response = await fetch('/api/config');
-  const config = await response.json();
+  const config = await readJson(response);
   state.config = config;
   populateConnectForm(config);
   setViewerUrl(config);
@@ -86,8 +102,9 @@ async function api(path, method = 'GET', body) {
     body: body ? JSON.stringify(body) : undefined
   });
 
-  if (!response.ok) throw new Error((await response.json()).error || response.statusText);
-  return response.json();
+  const data = await readJson(response);
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
 }
 
 document.getElementById('connectBtn').addEventListener('click', async () => {
