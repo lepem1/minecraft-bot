@@ -50,13 +50,11 @@ Use `MINECRAFT_AUTH=microsoft` only when your server requires Microsoft authenti
 - `npm run dev` starts the server with nodemon.
 - `npm run check` performs JavaScript syntax checks.
 
-Open `http://localhost:3000`, enter the dashboard password, type the Minecraft server IP/host, port, bot name, version, and auth mode, then click **Connect**. The Prismarine POV is served separately on `VIEWER_PORT` and embedded in the dashboard.
+Open `http://localhost:3000`, enter the dashboard password, type the Minecraft server IP/host, port, bot name, version, and auth mode, then click **Connect**. The Prismarine POV is proxied through the dashboard server, so only `WEB_PORT` needs to be public.
 
-## Vercel / serverless deployment note
+## Railway deployment
 
-The repository includes a minimal `vercel.json` that leaves Vercel's filesystem routing in place for `api/*.js` serverless functions and rewrites non-API page requests to the static dashboard. This avoids routing `/api/config` to an HTML page, which is what causes browser errors such as `Unexpected token 'T' ... is not valid JSON`. However, live Minecraft bot control is **not serverless-compatible** because Mineflayer, long-running TCP Minecraft connections, reconnection timers, and `prismarine-viewer` need a persistent Node.js process.
-
-For an online deployment that can actually join Minecraft servers, run this app on a persistent Node host such as a VPS, home server, Docker host, Railway/Fly/Render-style long-running service, or another platform that supports long-lived TCP processes. Vercel can still host the static frontend and lightweight JSON API shims, or it can sit in front of a persistent backend if you add a backend URL configuration later.
+Deploy this repository as a long-running Node service on Railway with the start command `npm start`. The app uses Railway’s injected `PORT` automatically; set `WEB_PORT` only when you need to override it. Keep `VIEWER_PORT` internal; the dashboard forwards the POV and its WebSocket traffic through the web service port.
 
 ## Dashboard features
 
@@ -101,9 +99,8 @@ Incoming messages are validated, unknown commands are rejected, chat length is l
 - **Server unavailable**: verify the host/port typed in the dashboard, firewall rules, and that the Minecraft server is running.
 - **Version mismatch**: set the dashboard version field to the server version, for example `1.20.4`.
 - **Authentication fails**: use the correct Mineflayer auth mode for your server. Online-mode public servers generally require Microsoft authentication.
-- **POV does not load**: verify `VIEWER_PORT` is available and not blocked. The viewer starts only after the bot spawns.
+- **POV does not load**: verify the bot has spawned and that the Railway service is running as a long-lived Node process. The viewer starts only after the bot spawns.
 - **Controls do nothing**: click the POV/control area and confirm the bot is online. If a dashboard password is configured, authenticate by entering it before connecting.
-- **Vercel deployment loads but cannot control a bot**: move the backend to a persistent Node host. This is a platform limitation of serverless functions, not a dashboard UI issue.
 
 ## Security notes
 
@@ -112,7 +109,6 @@ The app is intended for personal or trusted use. It never exposes `.env` content
 ## Project structure
 
 ```text
-api               Vercel-compatible serverless informational endpoint
 src/config        Environment loading
 src/bot           Connection, movement, camera, chat, inventory, PvP lock, status modules
 src/server        Express routes and WebSocket protocol

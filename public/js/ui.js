@@ -56,7 +56,5 @@ export function populateConnectForm(config) {
   document.getElementById('authMode').value = config.authMode || 'offline';
 
   const notice = document.getElementById('deployNotice');
-  if (config.deployment?.serverlessCompatible === false) {
-    notice.textContent = `Vercel can host the static dashboard, but live bot control requires a long-running Node server: ${config.deployment.reason}`;
-  }
+  notice.textContent = 'Railway mode: the live POV is served through this dashboard connection.';
 }

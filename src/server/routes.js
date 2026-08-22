@@ -24,12 +24,7 @@ function createRoutes(config, botManager) {
     minecraftVersion: config.minecraft.version,
     botUsername: config.minecraft.username,
     authMode: config.minecraft.auth,
-    viewerPort: config.viewer.port,
-    authRequired: Boolean(config.web.password),
-    deployment: {
-      serverlessCompatible: false,
-      reason: 'Mineflayer, WebSockets, TCP Minecraft connections, and prismarine-viewer need a long-running Node process.'
-    }
+    authRequired: Boolean(config.web.password)
   }));
 
   router.post('/api/bot/connect', requireAuth, (req, res) => {

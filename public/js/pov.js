@@ -43,5 +43,10 @@ export function setupPov(state, socket) {
 
 export function setViewerUrl(config) {
   const frame = document.getElementById('povFrame');
-  frame.src = `http://${location.hostname}:${config.viewerPort}`;
+  frame.src = '/pov/';
+}
+
+export function refreshViewer() {
+  const frame = document.getElementById('povFrame');
+  frame.src = `/pov/?reload=${Date.now()}`;
 }

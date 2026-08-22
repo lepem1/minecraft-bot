@@ -17,7 +17,7 @@ const config = {
   },
   web: {
     host: process.env.WEB_HOST || '0.0.0.0',
-    port: int('WEB_PORT', 3000),
+    port: int('WEB_PORT', int('PORT', 3000)),
     password: process.env.DASHBOARD_PASSWORD || '12345'
   },
   viewer: {

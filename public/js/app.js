@@ -1,6 +1,6 @@
 import { DashboardSocket } from './websocket.js';
 import { setupControls } from './controls.js';
-import { setupPov, setViewerUrl } from './pov.js';
+import { setupPov, setViewerUrl, refreshViewer } from './pov.js';
 import { renderInventory } from './inventory.js';
 import { setupPvp, renderPvp } from './pvp.js';
 import { updateStatus, addChat, showError, setupCollapsibles, populateConnectForm } from './ui.js';
@@ -40,6 +40,7 @@ const socket = new DashboardSocket(state, (message) => {
     state.status = { ...state.status, state: message.data.state, online: message.data.state === 'online' };
     updateStatus(state);
     if (message.data.error) showError(message.data.error);
+    if (message.data.state === 'online') refreshViewer();
   }
 
   if (message.type === 'bot_chat') addChat(message.data);
