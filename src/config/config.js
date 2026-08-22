@@ -13,7 +13,20 @@ const config = {
     version: process.env.MINECRAFT_VERSION || '1.20.4',
     username: process.env.BOT_USERNAME || 'MyBot',
     auth: process.env.MINECRAFT_AUTH || 'offline',
-    reconnectDelay: int('BOT_RECONNECT_DELAY', 5000)
+    reconnectDelay: int('BOT_RECONNECT_DELAY', 5000),
+    maxReconnectAttempts: int('MAX_RECONNECT_ATTEMPTS', 5),
+    loader: (process.env.MINECRAFT_LOADER || 'vanilla').toLowerCase(),
+    forgeVersion: process.env.FORGE_VERSION || '',
+    modDirectory: process.env.MOD_DIRECTORY || ''
+  },
+  forge: {
+    javaPath: process.env.JAVA_PATH || 'java',
+    minecraftHome: process.env.MINECRAFT_HOME || 'minecraft',
+    clientHome: process.env.MINECRAFT_CLIENT_HOME || 'minecraft/client',
+    forgeHome: process.env.FORGE_HOME || 'minecraft/forge',
+    forgeVersion: process.env.FORGE_VERSION || '',
+    modDirectory: process.env.MOD_DIRECTORY || 'minecraft/mods',
+    clientCommand: process.env.FORGE_CLIENT_COMMAND || 'scripts/start-forge-client.sh'
   },
   web: {
     host: process.env.WEB_HOST || '0.0.0.0',
@@ -21,7 +34,10 @@ const config = {
     password: process.env.DASHBOARD_PASSWORD || '12345'
   },
   viewer: {
-    port: int('VIEWER_PORT', 3007)
+    port: int('VIEWER_INTERNAL_PORT', 3007),
+    publicPort: int('VIEWER_PORT', 3001),
+    host: process.env.VIEWER_HOST || '0.0.0.0',
+    publicUrl: process.env.VIEWER_URL || ''
   },
   logLevel: process.env.LOG_LEVEL || 'info'
 };
