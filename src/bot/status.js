@@ -2,12 +2,12 @@ function round(value) {
   return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
 }
 
-function buildStatus(state, bot, connectOptions = {}) {
+function buildStatus(state, bot, connectOptions = {}, forge = null) {
   const entity = bot?.entity;
 
   return {
     state,
-    online: state === 'online',
+    online: state === 'online' || state === 'connected',
     username: bot?.username || connectOptions.username || null,
     uuid: bot?.player?.uuid || bot?.uuid || null,
     health: bot?.health ?? 0,
@@ -26,8 +26,11 @@ function buildStatus(state, bot, connectOptions = {}) {
       host: connectOptions.host || null,
       port: connectOptions.port || null,
       version: connectOptions.version || null,
-      auth: connectOptions.auth || null
-    }
+      auth: connectOptions.auth || null,
+      loader: connectOptions.loader || 'vanilla',
+      forgeVersion: connectOptions.forgeVersion || null
+    },
+    forge: forge || null
   };
 }
 

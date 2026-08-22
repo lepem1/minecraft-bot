@@ -41,7 +41,8 @@ function createWebSocketServer(server, config, botManager) {
       authRequired: Boolean(config.web.password),
       connectOptions: botManager.safeConnectOptions()
     });
-    send(ws, 'bot_status', buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions()));
+    send(ws, 'bot_status', buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions(), botManager.forge.status));
+    send(ws, 'forge_status', botManager.forge.status);
     send(ws, 'pvp_status', botManager.pvp.status());
 
     ws.on('message', async (raw) => {
@@ -82,7 +83,7 @@ function createWebSocketServer(server, config, botManager) {
           broadcast('bot_chat', { kind: 'sent', message: sent, at: Date.now() });
         }
         if (msg.type === 'stop_all') botManager.stopAll();
-        if (msg.type === 'request_status') send(ws, 'bot_status', buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions()));
+        if (msg.type === 'request_status') send(ws, 'bot_status', buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions(), botManager.forge.status));
         if (msg.type === 'request_inventory') send(ws, 'bot_inventory', botManager.inventory.list());
         if (msg.type === 'pvp_lock') broadcast('pvp_status', botManager.pvp.setLock(msg.enabled, msg.targetUsername));
         if (msg.type === 'pvp_attack') {
@@ -111,6 +112,7 @@ function createWebSocketServer(server, config, botManager) {
   botManager.on('bot_chat', (data) => broadcast('bot_chat', data));
   botManager.on('pvp_status', (data) => broadcast('pvp_status', data));
   botManager.on('error_message', (data) => broadcast('error', data));
+  botManager.on('forge_status', (data) => broadcast('forge_status', data));
 
   return wss;
 }
