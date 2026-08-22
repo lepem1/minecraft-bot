@@ -54,7 +54,10 @@ export function populateConnectForm(config) {
   document.getElementById('botUsernameInput').value = config.botUsername || 'MyBot';
   document.getElementById('mcVersion').value = config.minecraftVersion || '1.20.4';
   document.getElementById('authMode').value = config.authMode || 'offline';
+  document.getElementById('loader').value = config.loader || 'vanilla';
+  document.getElementById('forgeVersion').value = config.forgeVersion || '';
+  document.getElementById('modDirectory').value = config.modDirectory || 'minecraft/mods';
 
   const notice = document.getElementById('deployNotice');
-  notice.textContent = 'Railway mode: the live POV is served through this dashboard connection.';
+  notice.textContent = 'Railway mode: the live POV is served through this dashboard connection. Forge POV: unavailable unless a real client stream adapter is configured.';
 }

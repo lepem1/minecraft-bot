@@ -37,7 +37,7 @@ const socket = new DashboardSocket(state, (message) => {
   }
 
   if (message.type === 'connection_state') {
-    state.status = { ...state.status, state: message.data.state, online: message.data.state === 'online' };
+    state.status = { ...state.status, state: message.data.state, online: ['online', 'connected'].includes(message.data.state) };
     updateStatus(state);
     if (message.data.error) showError(message.data.error);
     if (message.data.state === 'online') refreshViewer();
@@ -78,6 +78,12 @@ async function loadConfig() {
   updateStatus(state);
 }
 
+document.getElementById('fullscreenPovBtn').addEventListener('click', () => {
+  const configured = state.config.viewerUrl;
+  const url = configured || `${location.protocol}//${location.hostname}:${state.config.viewerPort || 3001}`;
+  window.open(url, '_blank', 'noopener');
+});
+
 function getPassword() {
   return document.getElementById('password').value;
 }
@@ -88,7 +94,10 @@ function getConnectOptions() {
     port: Number(document.getElementById('serverPort').value),
     username: document.getElementById('botUsernameInput').value,
     version: document.getElementById('mcVersion').value,
-    auth: document.getElementById('authMode').value
+    auth: document.getElementById('authMode').value,
+    loader: document.getElementById('loader').value,
+    forgeVersion: document.getElementById('forgeVersion').value,
+    modDirectory: document.getElementById('modDirectory').value
   };
 }
 

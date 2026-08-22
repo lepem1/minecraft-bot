@@ -14,7 +14,7 @@ function createRoutes(config, botManager) {
 
   router.get('/api/status', (req, res) => res.json({
     state: botManager.state,
-    status: buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions()),
+    status: buildStatus(botManager.state, botManager.bot, botManager.safeConnectOptions(), botManager.forge.status),
     pvp: botManager.pvp.status()
   }));
 
@@ -24,8 +24,15 @@ function createRoutes(config, botManager) {
     minecraftVersion: config.minecraft.version,
     botUsername: config.minecraft.username,
     authMode: config.minecraft.auth,
+    loader: config.minecraft.loader,
+    forgeVersion: config.minecraft.forgeVersion,
+    modDirectory: config.minecraft.modDirectory,
+    viewerPort: config.viewer.publicPort,
+    viewerUrl: config.viewer.publicUrl,
     authRequired: Boolean(config.web.password)
   }));
+
+  router.get('/api/forge/status', requireAuth, (req, res) => res.json(botManager.forge.getStatus()));
 
   router.post('/api/bot/connect', requireAuth, (req, res) => {
     const validated = validateConnectOptions(req.body || {});
